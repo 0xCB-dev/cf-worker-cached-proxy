@@ -1,0 +1,4 @@
+name = "cached-proxy"
+main = "./src/index.js"
+compatibility_date = "2022-08-01"
+compatibility_flags = [ "url_standard" ]
