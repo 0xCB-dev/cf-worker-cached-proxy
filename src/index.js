@@ -1,8 +1,26 @@
 // origin server
-const origin = "https://demo.vendure.io/"
+const origin = "https://demo.vendure.io"
+
+async function setRealIP(request) 
+{
+    var ip=""
+    // Get the X-Forwarded-For header if it exists
+    ip = request.headers.get("X-Forwarded-For")
+    if (!ip) {
+       //console.log("X-Forwarded-For was null")
+       ip = request.headers.get("Cf-Connecting-Ip")
+       //console.log("Getting IP from CF-Connecting-IP:"+ip)
+    }
+    
+    // Add Real IP to header
+    request = new Request(request)
+    request.headers.set('True-Client-IP', ip)
+    
+    return request
+}
 
 async function handleRequest(event) {
-  const request = event.request;
+  let request = event.request;
   const cacheUrl = new URL(request.url);
 
   // Extract pathname and search parameters from url
@@ -23,13 +41,17 @@ async function handleRequest(event) {
     );
     // construct full url for origin request
     const fullURL = origin + pathname + search
+
+    // Set the real IP on the request before fetching
+    request = await setRealIP(request);
+
     // If not in cache, get it from origin
-    response = await fetch(fullURL);
+    response = await fetch(fullURL, {method: request.method, headers: request.headers});
 
     // Must use Response constructor to inherit all of response's fields
     response = new Response(response.body, response);
 
-    // Cache API respects Cache-Control headers. Setting s-max-age to 10
+    // Cache API respects Cache-Control headers. Setting s-maxage to 10
     // will limit the response to be in cache for 10 seconds max
 
     // Any changes made to the response here will be reflected in the cached value
